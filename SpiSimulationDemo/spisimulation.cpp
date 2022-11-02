@@ -29,7 +29,46 @@ Mat4Step GetPattern(unsigned x, unsigned y) {
 		}
 	return patterns;
 }
+void InputN() {
+	std::cout << "请输入分辨率：" << std::endl;
+	std::cin >> N;
+	std::cout << "正在仿真..." << std::endl;
+}
+void NormalizeSpectrum(cv::Mat& spectrum) {
+	cv::Mat s_array[2];
+	cv::split(spectrum, s_array);
+	cv::Mat normalized = s_array[0].mul(s_array[0]) + s_array[1].mul(s_array[1]);
+	cv::sqrt(normalized, normalized);
+	cv::log(normalized, normalized);
+	normalized = normalized / cv::log(10);
+	cv::normalize(normalized, normalized, 0, 1, cv::NormTypes::NORM_MINMAX);
+	normalized.convertTo(normalized, CV_8UC1,256);
+	cv::applyColorMap(normalized, normalized, cv::ColormapTypes::COLORMAP_PARULA);
+	spectrum = normalized;
+}
+cv::Mat FftShift(cv::Mat spectrum) {
+	if (spectrum.rows % 2 != 0 || spectrum.cols % 2 != 0) {
+		std::cout << "频谱不是偶数分辨率，暂不可中心化\n";
+		return cv::Mat();
+	}
+	int x = spectrum.cols - 1;
+	int y = spectrum.rows - 1;
+	int cx = spectrum.cols / 2;
+	int cy = spectrum.rows / 2;
+	//printf_s("%d %d %d %d", x, y, cx, cy);
+	cv::Mat shifted(spectrum);
+	shifted.adjustROI(0, 0, cx - 1, cy - 1).setTo(
+		spectrum(cv::Rect(cx, cy, x, y)));//左上
+	shifted.adjustROI(cx, 0, x, cy - 1).setTo(
+		spectrum(cv::Rect(cx, 0, x, cy - 1)));//右上
+	shifted.adjustROI(0, cx - 1, cy, y).setTo(
+		spectrum(cv::Rect(cx, x, 0, cy - 1)));//左下
+	shifted.adjustROI(cx, cy, x, y).setTo(
+		spectrum(cv::Rect(0, 0, cx - 1, cy - 1)));//右下
+	return shifted;
+}
 int main() {
+	InputN();
 	cv::Mat img = GetImage(imgFilePath);
 	//cv::normalize(img, img, 0, 255, cv::NormTypes::NORM_MINMAX);
 	Mat4Step output4Step(N, N, CV_64F);
@@ -46,6 +85,10 @@ int main() {
 	cv::Mat outputs[] = {
 		output4Step.Mat1 - output4Step.Mat3,output4Step.Mat2 - output4Step.Mat4 };
 	cv::merge(outputs, 2, output);
+	cv::Mat spectrum;
+	cv::extractChannel(output, spectrum, 0);
+	NormalizeSpectrum(spectrum);
+	//spectrum = FftShift(spectrum);
 	cv::Mat rebuild;
 	cv::idft(output, rebuild);
 	cv::extractChannel(rebuild, rebuild, 0);
@@ -55,8 +98,11 @@ int main() {
 	std::cout << "秒" << std::endl;
 	//return -1;
 	cv::namedWindow("Rebuild Image", 0);
-	cv::resizeWindow("Rebuild Image", 768, 768);
+	cv::resizeWindow("Rebuild Image", 512, 512);
 	cv::imshow("Rebuild Image", rebuild);
+	cv::namedWindow("Spectrum", 0);
+	cv::resizeWindow("Spectrum", 512, 512);
+	cv::imshow("Spectrum", spectrum);
 	cv::waitKey(0);
 	cv::destroyAllWindows();
 	return 0;

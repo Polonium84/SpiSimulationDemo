@@ -1,8 +1,8 @@
 #pragma once
 #include <iostream>
-#include <string.h>
-#include <math.h>
-#include <time.h>
+#include <cstring>
+#include <cmath>
+#include <ctime>
 
 #include <Eigen/Dense>
 
