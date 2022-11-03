@@ -1,6 +1,7 @@
-#pragma once
+#ifndef __SPISIMULATION__
+#define __SPISIMULATION__
+
 #include <iostream>
-#include <cstring>
 #include <cmath>
 #include <ctime>
 
@@ -28,3 +29,5 @@ struct Mat4Step
 		Mat4 = cv::Mat(rows, cols, type);
 	}
 };
+
+#endif // !__SPISIMULATION__

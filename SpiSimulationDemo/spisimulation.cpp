@@ -2,9 +2,9 @@
 
 //≤Œ ˝…Ë÷√
 unsigned N = 128;
-char imgFilePath[] = "E:\\Programming\\MATLAB\\SPI_Simulation\\images\\im_lena512.jpg";
+const char imgFilePath[] = "E:\\Programming\\MATLAB\\SPI_Simulation\\images\\im_lena512.jpg";
 
-cv::Mat GetImage(char* imgPath) {
+cv::Mat GetImage(const char* imgPath) {
 	cv::Mat img = cv::imread(imgPath);
 	cv::Mat output_img;
 	cv::resize(img, output_img, cv::Size(N, N));
@@ -42,7 +42,7 @@ void NormalizeSpectrum(cv::Mat& spectrum) {
 	cv::log(normalized, normalized);
 	normalized = normalized / cv::log(10);
 	cv::normalize(normalized, normalized, 0, 1, cv::NormTypes::NORM_MINMAX);
-	normalized.convertTo(normalized, CV_8UC1,256);
+	normalized.convertTo(normalized, CV_8UC1,255);
 	cv::applyColorMap(normalized, normalized, cv::ColormapTypes::COLORMAP_PARULA);
 	spectrum = normalized;
 }
@@ -80,7 +80,13 @@ int main() {
 			output4Step.Mat2.at<double>(y, x) = cv::sum(img.mul(patterns.Mat2))[0];
 			output4Step.Mat3.at<double>(y, x) = cv::sum(img.mul(patterns.Mat3))[0];
 			output4Step.Mat4.at<double>(y, x) = cv::sum(img.mul(patterns.Mat4))[0];
+			//char name[80];
+			//sprintf_s(name, ".\\patterns\\%03d_%03d_1.bmp", x, y);
+			//cv::Mat save;
+			//patterns.Mat1.convertTo(save, CV_8UC1, 255);
+			//cv::imwrite(name, save);
 		}
+	
 	cv::Mat output(N, N, CV_64FC2);
 	cv::Mat outputs[] = {
 		output4Step.Mat1 - output4Step.Mat3,output4Step.Mat2 - output4Step.Mat4 };
