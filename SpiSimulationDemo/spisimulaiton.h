@@ -5,14 +5,12 @@
 #include <cmath>
 #include <ctime>
 
-#include <Eigen/Dense>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 
-#include <gsl/gsl_fft.h>
 
 #define PI acos(-1.0)
 

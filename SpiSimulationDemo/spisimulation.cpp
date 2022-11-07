@@ -47,6 +47,7 @@ void NormalizeSpectrum(cv::Mat& spectrum) {
 	spectrum = normalized;
 }
 cv::Mat FftShift(cv::Mat spectrum) {
+	//throw "FftShift函数暂未实现";
 	if (spectrum.rows % 2 != 0 || spectrum.cols % 2 != 0) {
 		std::cout << "频谱不是偶数分辨率，暂不可中心化\n";
 		return cv::Mat();
@@ -57,14 +58,12 @@ cv::Mat FftShift(cv::Mat spectrum) {
 	int cy = spectrum.rows / 2;
 	//printf_s("%d %d %d %d", x, y, cx, cy);
 	cv::Mat shifted(spectrum);
-	shifted.adjustROI(0, 0, cx - 1, cy - 1).setTo(
-		spectrum(cv::Rect(cx, cy, x, y)));//左上
-	shifted.adjustROI(cx, 0, x, cy - 1).setTo(
-		spectrum(cv::Rect(cx, 0, x, cy - 1)));//右上
-	shifted.adjustROI(0, cx - 1, cy, y).setTo(
-		spectrum(cv::Rect(cx, x, 0, cy - 1)));//左下
-	shifted.adjustROI(cx, cy, x, y).setTo(
-		spectrum(cv::Rect(0, 0, cx - 1, cy - 1)));//右下
+	spectrum(cv::Rect(cx, cy, cx, cy)).copyTo(shifted(cv::Rect(0, 0, cx, cy)));//右下->左上
+	spectrum(cv::Rect(0, cx, cx, cy)).copyTo(shifted(cv::Rect(cx, 0, cx, cy)));//左下->右上
+	spectrum(cv::Rect(cx, 0, cx, cy)).copyTo(shifted(cv::Rect(0, cx, cx, cy)));//右上->左下
+	spectrum(cv::Rect(0, 0, cx, cy)).copyTo(shifted(cv::Rect(cx, cy, cx, cy)));//左上->右下
+	cv::flip(shifted(cv::Rect(0, cx, cx, cy)), shifted(cv::Rect(0, cx, cx, cy)), -1);
+	cv::flip(shifted(cv::Rect(cx, cy, cx, cy)), shifted(cv::Rect(cx, cy, cx, cy)), -1);
 	return shifted;
 }
 int main() {
@@ -81,9 +80,18 @@ int main() {
 			output4Step.Mat3.at<double>(y, x) = cv::sum(img.mul(patterns.Mat3))[0];
 			output4Step.Mat4.at<double>(y, x) = cv::sum(img.mul(patterns.Mat4))[0];
 			//char name[80];
-			//sprintf_s(name, ".\\patterns\\%03d_%03d_1.bmp", x, y);
 			//cv::Mat save;
+			//sprintf_s(name, ".\\patterns\\%03d_%03d_1.bmp", x, y);
 			//patterns.Mat1.convertTo(save, CV_8UC1, 255);
+			//cv::imwrite(name, save);
+			//sprintf_s(name, ".\\patterns\\%03d_%03d_2.bmp", x, y);
+			//patterns.Mat2.convertTo(save, CV_8UC1, 255);
+			//cv::imwrite(name, save);
+			//sprintf_s(name, ".\\patterns\\%03d_%03d_3.bmp", x, y);
+			//patterns.Mat3.convertTo(save, CV_8UC1, 255);
+			//cv::imwrite(name, save);
+			//sprintf_s(name, ".\\patterns\\%03d_%03d_4.bmp", x, y);
+			//patterns.Mat4.convertTo(save, CV_8UC1, 255);
 			//cv::imwrite(name, save);
 		}
 	
@@ -94,7 +102,7 @@ int main() {
 	cv::Mat spectrum;
 	cv::extractChannel(output, spectrum, 0);
 	NormalizeSpectrum(spectrum);
-	//spectrum = FftShift(spectrum);
+	spectrum = FftShift(spectrum);
 	cv::Mat rebuild;
 	cv::idft(output, rebuild);
 	cv::extractChannel(rebuild, rebuild, 0);
@@ -109,6 +117,8 @@ int main() {
 	cv::namedWindow("Spectrum", 0);
 	cv::resizeWindow("Spectrum", 512, 512);
 	cv::imshow("Spectrum", spectrum);
+	//rebuild.convertTo(rebuild, CV_8UC1, 255);
+	//cv::imwrite("rebuild.jpg", rebuild);
 	cv::waitKey(0);
 	cv::destroyAllWindows();
 	return 0;
