@@ -1,7 +1,7 @@
 #include "spisimulaiton.h"
 
 //参数设置
-unsigned N = 128;
+unsigned N = 128;//此设置无实际意义，分辨率由运行时手动输入
 const char imgFilePath[] = "E:\\Programming\\MATLAB\\SPI_Simulation\\images\\im_lena512.jpg";
 
 cv::Mat GetImage(const char* imgPath) {
@@ -30,7 +30,7 @@ Mat4Step GetPattern(unsigned x, unsigned y) {
 	return patterns;
 }
 void InputN() {
-	std::cout << "请输入分辨率：" << std::endl;
+	std::cout << "请输入分辨率：" ;
 	std::cin >> N;
 	std::cout << "正在仿真..." << std::endl;
 }
@@ -71,6 +71,7 @@ int main() {
 	cv::Mat img = GetImage(imgFilePath);
 	//cv::normalize(img, img, 0, 255, cv::NormTypes::NORM_MINMAX);
 	Mat4Step output4Step(N, N, CV_64F);
+	int total_loop_num = N * N;
 	clock_t clk_begin = clock();
 	for (int x = 0; x < N; x++)
 		for (int y = 0; y < N; y++) {
@@ -93,8 +94,10 @@ int main() {
 			//sprintf_s(name, ".\\patterns\\%03d_%03d_4.bmp", x, y);
 			//patterns.Mat4.convertTo(save, CV_8UC1, 255);
 			//cv::imwrite(name, save);
+			std::cout << "进度：" << x * N + y + 1 << "/" << total_loop_num << '\r';
+			//注意：进度显示会导致效率降低
 		}
-	
+	std::cout << std::endl;
 	cv::Mat output(N, N, CV_64FC2);
 	cv::Mat outputs[] = {
 		output4Step.Mat1 - output4Step.Mat3,output4Step.Mat2 - output4Step.Mat4 };
@@ -117,8 +120,10 @@ int main() {
 	cv::namedWindow("Spectrum", 0);
 	cv::resizeWindow("Spectrum", 512, 512);
 	cv::imshow("Spectrum", spectrum);
-	//rebuild.convertTo(rebuild, CV_8UC1, 255);
-	//cv::imwrite("rebuild.jpg", rebuild);
+	rebuild.convertTo(rebuild, CV_8UC1, 255);
+	cv::imwrite(".\\output\\rebuild.jpg", rebuild);
+	//spectrum.convertTo(spectrum, CV_8UC3);
+	cv::imwrite(".\\output\\spectrum.jpg", spectrum);
 	cv::waitKey(0);
 	cv::destroyAllWindows();
 	return 0;
