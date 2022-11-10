@@ -5,6 +5,7 @@
 
 # custom
 patterns/
+output/
 
 # User-specific files
 *.rsuser
