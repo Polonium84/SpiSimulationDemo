@@ -9,7 +9,6 @@ cv::Mat GetImage(const char* imgPath) {
 	cv::Mat output_img;
 	cv::resize(img, output_img, cv::Size(N, N));
 	cv::cvtColor(output_img, output_img, cv::ColorConversionCodes::COLOR_BGR2GRAY);
-	//cv::normalize(output_img, output_img, 0.0, 1.0, cv::NormTypes::NORM_MINMAX);
 	output_img.convertTo(output_img, CV_64F, 1.0 / 255.0);
 	return output_img;
 }
@@ -56,7 +55,6 @@ cv::Mat FftShift(cv::Mat spectrum) {
 	int y = spectrum.rows - 1;
 	int cx = spectrum.cols / 2;
 	int cy = spectrum.rows / 2;
-	//printf_s("%d %d %d %d", x, y, cx, cy);
 	cv::Mat shifted(spectrum);
 	spectrum(cv::Rect(cx, cy, cx, cy)).copyTo(shifted(cv::Rect(0, 0, cx, cy)));//右下->左上
 	spectrum(cv::Rect(0, cx, cx, cy)).copyTo(shifted(cv::Rect(cx, 0, cx, cy)));//左下->右上
@@ -66,13 +64,25 @@ cv::Mat FftShift(cv::Mat spectrum) {
 	cv::flip(shifted(cv::Rect(cx, cy, cx, cy)), shifted(cv::Rect(cx, cy, cx, cy)), -1);
 	return shifted;
 }
-int main() {
-	InputN();
-	cv::Mat img = GetImage(imgFilePath);
-	//cv::normalize(img, img, 0, 255, cv::NormTypes::NORM_MINMAX);
+void SavePatternAt(int x, int y, Mat4Step& patterns) {
+	char name[80];
+	cv::Mat save;
+	sprintf_s(name, ".\\patterns\\%03d_%03d_1.bmp", x, y);
+	patterns.Mat1.convertTo(save, CV_8UC1, 255);
+	cv::imwrite(name, save);
+	sprintf_s(name, ".\\patterns\\%03d_%03d_2.bmp", x, y);
+	patterns.Mat2.convertTo(save, CV_8UC1, 255);
+	cv::imwrite(name, save);
+	sprintf_s(name, ".\\patterns\\%03d_%03d_3.bmp", x, y);
+	patterns.Mat3.convertTo(save, CV_8UC1, 255);
+	cv::imwrite(name, save);
+	sprintf_s(name, ".\\patterns\\%03d_%03d_4.bmp", x, y);
+	patterns.Mat4.convertTo(save, CV_8UC1, 255);
+	cv::imwrite(name, save);
+}
+std::vector<cv::Mat> Simulate(cv::Mat& img) {
 	Mat4Step output4Step(N, N, CV_64F);
 	int total_loop_num = N * N;
-	clock_t clk_begin = clock();
 	for (int x = 0; x < N; x++)
 		for (int y = 0; y < N; y++) {
 			Mat4Step patterns = GetPattern(x, y);
@@ -80,22 +90,9 @@ int main() {
 			output4Step.Mat2.at<double>(y, x) = cv::sum(img.mul(patterns.Mat2))[0];
 			output4Step.Mat3.at<double>(y, x) = cv::sum(img.mul(patterns.Mat3))[0];
 			output4Step.Mat4.at<double>(y, x) = cv::sum(img.mul(patterns.Mat4))[0];
-			//char name[80];
-			//cv::Mat save;
-			//sprintf_s(name, ".\\patterns\\%03d_%03d_1.bmp", x, y);
-			//patterns.Mat1.convertTo(save, CV_8UC1, 255);
-			//cv::imwrite(name, save);
-			//sprintf_s(name, ".\\patterns\\%03d_%03d_2.bmp", x, y);
-			//patterns.Mat2.convertTo(save, CV_8UC1, 255);
-			//cv::imwrite(name, save);
-			//sprintf_s(name, ".\\patterns\\%03d_%03d_3.bmp", x, y);
-			//patterns.Mat3.convertTo(save, CV_8UC1, 255);
-			//cv::imwrite(name, save);
-			//sprintf_s(name, ".\\patterns\\%03d_%03d_4.bmp", x, y);
-			//patterns.Mat4.convertTo(save, CV_8UC1, 255);
-			//cv::imwrite(name, save);
 			std::cout << "进度：" << x * N + y + 1 << "/" << total_loop_num << '\r';
 			//注意：进度显示会导致效率降低
+			//SavePatternAt(x, y, patterns);
 		}
 	std::cout << std::endl;
 	cv::Mat output(N, N, CV_64FC2);
@@ -110,21 +107,30 @@ int main() {
 	cv::idft(output, rebuild);
 	cv::extractChannel(rebuild, rebuild, 0);
 	cv::normalize(rebuild, rebuild, 0, 1, cv::NormTypes::NORM_MINMAX);
+	return { rebuild,spectrum };
+}
+void ShowResults(std::vector<cv::Mat>& results) {
+	cv::namedWindow("Rebuild Image", 0);
+	cv::resizeWindow("Rebuild Image", 512, 512);
+	cv::imshow("Rebuild Image", results[0]);
+	cv::namedWindow("Spectrum", 0);
+	cv::resizeWindow("Spectrum", 512, 512);
+	cv::imshow("Spectrum", results[1]);
+	results[0].convertTo(results[0], CV_8UC1, 255);
+	cv::imwrite(".\\output\\rebuild.jpg", results[0]);
+	//spectrum.convertTo(spectrum, CV_8UC3);
+	cv::imwrite(".\\output\\spectrum.jpg", results[1]);
+	cv::waitKey(0);
+	cv::destroyAllWindows();
+}
+int main() {
+	InputN();
+	cv::Mat img = GetImage(imgFilePath);
+	clock_t clk_begin = clock();
+	std::vector<cv::Mat> results = Simulate(img);
 	clock_t clk_end = clock();
 	std::cout << "用时" << double(clk_end - clk_begin) / CLOCKS_PER_SEC;
 	std::cout << "秒" << std::endl;
-	//return -1;
-	cv::namedWindow("Rebuild Image", 0);
-	cv::resizeWindow("Rebuild Image", 512, 512);
-	cv::imshow("Rebuild Image", rebuild);
-	cv::namedWindow("Spectrum", 0);
-	cv::resizeWindow("Spectrum", 512, 512);
-	cv::imshow("Spectrum", spectrum);
-	rebuild.convertTo(rebuild, CV_8UC1, 255);
-	cv::imwrite(".\\output\\rebuild.jpg", rebuild);
-	//spectrum.convertTo(spectrum, CV_8UC3);
-	cv::imwrite(".\\output\\spectrum.jpg", spectrum);
-	cv::waitKey(0);
-	cv::destroyAllWindows();
+	ShowResults(results);
 	return 0;
 }
